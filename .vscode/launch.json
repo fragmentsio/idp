@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "type": "java",
+      "name": "Launch IDP Server",
+      "request": "launch",
+      "mainClass": "io.fragments.idp.server.Application",
+      "projectName": "server",
+      "vmArgs": [
+        "-Dspring.config.location=file:./config/dev/config.yml"
+      ],
+      "env": {}
+    }
+  ]
+}
