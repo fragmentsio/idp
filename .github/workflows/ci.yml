@@ -41,8 +41,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         SONAR_HOST_URL: https://sonarcloud.io
-        SONAR_ORGANIZATION: ${{ github.repository.owner }}
-        SONAR_PROJECT_KEY: ${{ github.repository.owner }}_${{ github.event.repository.name }}
+        SONAR_ORGANIZATION: ${{ github.event.repository.owner }}
+        SONAR_PROJECT_KEY: ${{ github.event.repository.owner }}_${{ github.event.repository.name }}
       run: >
         mvn clean verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar
         --file=./src/pom.xml
