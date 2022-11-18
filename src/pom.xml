@@ -7,14 +7,14 @@
 
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.fragments.idp</groupId>
-  <artifactId>root</artifactId>
+  <groupId>io.fragments</groupId>
+  <artifactId>idp</artifactId>
   <version>0.0.1-SNAPSHOT</version>
 
   <packaging>pom</packaging>
 
   <name>${project.artifactId}</name>
-  <description>Root project</description>
+  <description>Identity Provider root project</description>
 
   <modules>
     <module>server</module>

@@ -21,7 +21,7 @@
   <packaging>jar</packaging>
 
   <name>${project.artifactId}</name>
-  <description>Identity Provider</description>
+  <description>Identity Provider server component</description>
 
   <properties>
     <java.version>17</java.version>
