@@ -1,3 +1,14 @@
 spring:
   profiles:
     active: "test"
+
+server:
+  port: 80
+
+management:
+  server:
+    port: 88
+    address: "127.0.0.1"
+  endpoints:
+    web:
+      base-path: "/management"
