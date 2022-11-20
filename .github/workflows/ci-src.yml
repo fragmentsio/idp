@@ -1,12 +1,16 @@
-name: CI
+name: Source Code CI
 
 on:
   push:
     branches:
     - main
+    paths:
+    - src/**
   pull_request:
     branches:
     - main
+    paths:
+    - src/**
 
 jobs:
   build:

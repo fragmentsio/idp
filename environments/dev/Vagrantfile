@@ -1,0 +1,45 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+MASTER_NODE_BASENAME          = "master"
+WORKER_NODE_BASENAME          = "worker"
+
+NODES_CIDR                    = "192.168.56."
+NODES_IP_START                = 28
+
+PROVISIONING_SCRIPTS_BASEPATH = "./scripts/"
+COMMON_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "common.sh"
+MASTER_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "master.sh"
+WORKER_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "worker.sh"
+
+Vagrant.configure("2") do |config|
+
+  nodes_config = [
+    { :name => MASTER_NODE_BASENAME + "-01", :ip => NODES_CIDR + "#{NODES_IP_START + 1}", :cpus => 2, :memory => 2048, :provisioning_script => MASTER_PROVISIONING_SCRIPT },
+    { :name => WORKER_NODE_BASENAME + "-01", :ip => NODES_CIDR + "#{NODES_IP_START + 2}", :cpus => 1, :memory => 1024, :provisioning_script => WORKER_PROVISIONING_SCRIPT },
+    { :name => WORKER_NODE_BASENAME + "-02", :ip => NODES_CIDR + "#{NODES_IP_START + 3}", :cpus => 1, :memory => 1024, :provisioning_script => WORKER_PROVISIONING_SCRIPT }
+  ]
+
+  config.vm.box = "bento/ubuntu-22.04"
+  config.vm.box_check_update = true
+
+  nodes_config.each do |node_config|
+
+    config.vm.define node_config[:name] do |node|
+
+      node.vm.provider "virtualbox" do |vb|
+        vb.cpus = node_config[:cpus]
+        vb.memory = node_config[:memory]
+      end
+
+      node.vm.hostname = node_config[:name]
+      node.vm.network "private_network", ip: node_config[:ip]
+
+      node.vm.provision "shell", path: COMMON_PROVISIONING_SCRIPT
+      node.vm.provision "shell", path: node_config[:provisioning_script]
+
+    end
+
+  end
+
+end
