@@ -1,6 +1,9 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+PROJECT_NAME                  = "idp"
+ENVIRONMENT_NAME              = "dev"
+
 MASTER_NODE_BASENAME          = "master"
 WORKER_NODE_BASENAME          = "worker"
 
@@ -20,6 +23,8 @@ Vagrant.configure("2") do |config|
     { :name => WORKER_NODE_BASENAME + "-02", :ip => NODES_CIDR + "#{NODES_IP_START + 3}", :cpus => 1, :memory => 1024, :provisioning_script => WORKER_PROVISIONING_SCRIPT }
   ]
 
+  hosts = nodes_config.map{|node_config| node_config[:ip] + ":" + node_config[:name]}.join(",")
+
   config.vm.box = "bento/ubuntu-22.04"
   config.vm.box_check_update = true
 
@@ -28,6 +33,7 @@ Vagrant.configure("2") do |config|
     config.vm.define node_config[:name] do |node|
 
       node.vm.provider "virtualbox" do |vb|
+        vb.name = PROJECT_NAME + "." + ENVIRONMENT_NAME + "." + node_config[:name]
         vb.cpus = node_config[:cpus]
         vb.memory = node_config[:memory]
       end
@@ -35,7 +41,7 @@ Vagrant.configure("2") do |config|
       node.vm.hostname = node_config[:name]
       node.vm.network "private_network", ip: node_config[:ip]
 
-      node.vm.provision "shell", path: COMMON_PROVISIONING_SCRIPT
+      node.vm.provision "shell", path: COMMON_PROVISIONING_SCRIPT, :args => "--hosts=#{hosts}"
       node.vm.provision "shell", path: node_config[:provisioning_script]
 
     end
