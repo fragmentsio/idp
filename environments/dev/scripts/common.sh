@@ -2,6 +2,8 @@
 #
 # common setup for all nodes
 
+KUBERNETES_VERSION=1.25.4
+
 # read arguments
 
 while [ $# -gt 0 ]; do
@@ -73,8 +75,67 @@ sudo sysctl --system
 
 echo "SUCCESS: ipv4 forwarding and bridged traffic for iptables enabled!"
 
-# TODO: install a container runtime
+# install required installation dependencies and set up keyrings directory
 
-# TODO: install kubeadm and kubelet
+sudo apt-get update
 
-# TODO: configure kubelet to use the same cgroup driver as the container runtime
+sudo apt-get install -y ca-certificates curl gnupg lsb-release apt-transport-https
+
+sudo mkdir -p /etc/apt/keyrings
+
+# install a container runtime
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+sudo apt-get update
+
+sudo apt-get install -y containerd.io
+
+sudo sed -i '/disabled_plugins/s/\(\,"cri"\|"cri"\,\|"cri"\)//g' /etc/containerd/config.toml
+
+sudo echo '
+[plugins."io.containerd.grpc.v1.cri"]
+  sandbox_image = "registry.k8s.io/pause:3.2"
+  [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc]
+    [plugins."io.containerd.grpc.v1.cri".containerd.runtimes.runc.options]
+      SystemdCgroup = true
+' | sudo tee -a /etc/containerd/config.toml > /dev/null
+
+sudo systemctl restart containerd
+sudo systemctl enable --now containerd
+
+if [ $(systemctl is-active containerd) = "active" ]; then
+  containerd --version
+  echo "SUCCESS: containerd is installed!"
+else
+  echo "FAILED: containerd is not installed correctly..."
+  exit 1
+fi
+
+# install kubeadm and kubelet
+
+sudo curl -fsSLo /etc/apt/keyrings/kubernetes.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+
+echo "deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list > /dev/null
+
+sudo apt-get update
+
+sudo apt-get install -y kubeadm="$KUBERNETES_VERSION"-00 kubelet="$KUBERNETES_VERSION"-00
+
+sudo apt-mark hold kubeadm kubelet
+
+if [[ $(kubeadm version -o short) == *"$KUBERNETES_VERSION"* ]]; then
+  echo "SUCCESS: kubeadm is installed!"
+else
+  echo "FAILED: kubeadm is not installed correctly..."
+  exit 1
+fi
+
+if [[ $(kubelet --version) == *"$KUBERNETES_VERSION"* ]]; then
+  echo "SUCCESS: kubelet is installed!"
+else
+  echo "FAILED: kubelet is not installed correctly..."
+  exit 1
+fi
