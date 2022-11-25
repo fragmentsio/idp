@@ -75,6 +75,13 @@ sudo sysctl --system
 
 echo "SUCCESS: ipv4 forwarding and bridged traffic for iptables enabled!"
 
+# disable cgroups v2
+
+sudo sed -i 's/GRUB_CMDLINE_LINUX_DEFAULT="/GRUB_CMDLINE_LINUX_DEFAULT="systemd.unified_cgroup_hierarchy=0 /g' /etc/default/grub
+sudo update-grub
+
+echo "SUCCESS: cgroup v2 disabled!"
+
 # install required installation dependencies and set up keyrings directory
 
 sudo apt-get update
