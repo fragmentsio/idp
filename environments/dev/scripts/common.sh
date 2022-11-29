@@ -88,7 +88,7 @@ sudo apt-get update
 
 sudo apt-get install -y ca-certificates curl gnupg lsb-release apt-transport-https
 
-wget https://github.com/mikefarah/yq/releases/download/v4.30.4/yq_linux_amd64.tar.gz -O - | tar xz && sudo mv yq_linux_amd64 /usr/bin/yq
+wget https://github.com/mikefarah/yq/releases/download/v4.30.4/yq_linux_amd64.tar.gz -q -O - | tar xz && sudo mv yq_linux_amd64 /usr/bin/yq
 
 sudo mkdir -p /etc/apt/keyrings
 

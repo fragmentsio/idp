@@ -39,6 +39,25 @@ fi
 
 sudo kubeadm init --apiserver-advertise-address=$MASTER_IP --pod-network-cidr=$POD_NETWORK_CIDR --ignore-preflight-errors=NumCPU
 
+# wait the kube-api-server to become live
+
+SLEEP=1
+TIMEOUT=300
+
+while [ $(curl --write-out %{http_code} --silent --output /dev/null -k https://$MASTER_IP:6443/livez) -ne 200 -a $SLEEP -lt $TIMEOUT ]; do
+  echo "INFO: waiting for kube-api-server to become live..."
+  sleep $SLEEP
+  $SLEEP*=2
+done
+
+if [ $SLEEP -ge $TIMEOUT ]; then
+  echo "FAILED: kube-api-server is not live after $TIMEOUT seconds..."
+  exit 1
+else
+  echo "SUCCESS: kube-api-server live check: "
+  curl -k https://$MASTER_IP:6443/livez?verbose
+fi
+
 # extract the join command
 
 mkdir -p /vagrant/.vagrant/.kube/config.d
@@ -57,43 +76,33 @@ sudo cp -f /etc/kubernetes/admin.conf /vagrant/.vagrant/.kube/config
 
 echo "SUCCESS: extracted kubeconfig file!"
 
-# wait the kube-api-server to become live
-
-SLEEP=1
-TIMEOUT=300
-
-while [ $(curl --write-out %{http_code} --silent --output /dev/null -k https://$MASTER_IP:6443/livez) -ne 200 -a $SLEEP -lt $TIMEOUT]; do
-  echo "INFO: waiting for kube-api-server to become live..."
-  sleep $SLEEP
-  $SLEEP*=2
-done
-
-if [ $SLEEP -ge $TIMEOUT ]; then
-  echo "FAILED: kube-api-server is not live after $TIMEOUT seconds..."
-  exit 1
-else
-  echo "SUCCESS: kube-api-server live check: "
-  curl -k https://$MASTER_IP:6443/livez?verbose
-fi
-
 # install kubectl
 
 sudo apt-get install -y kubectl="$KUBERNETES_VERSION"-00
 
 sudo apt-mark hold kubectl
 
-if [[ $(kubectl version) == *"$KUBERNETES_VERSION"* ]]; then
+if [[ $(kubectl --kubeconfig=/home/vagrant/.kube/config version) == *"$KUBERNETES_VERSION"* ]]; then
   echo "SUCCESS: kubectl is installed!"
 else
   echo "FAILED: kubectl is not installed correctly..."
   exit 1
 fi
 
+sudo apt-get install -y bash-completion
+echo "
+source /usr/share/bash-completion/bash_completion
+alias k='kubectl --kubeconfig=/home/vagrant/.kube/config'
+source <(kubectl completion bash)
+complete -o default -F __start_kubectl k
+" >> /home/vagrant/.bashrc
+source /home/vagrant/.bashrc
+
 # install cni plugin
 
-wget -O weave.yaml https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
+wget -q -O weave.yaml https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
 yq eval '(.items[] | select(.kind == "DaemonSet" and .metadata.name == "weave-net").spec.template.spec.containers[] | select(.name == "weave").env) += { "name": "IPALLOC_RANGE", "value": "'$POD_NETWORK_CIDR'" }' -i weave.yaml
 
-kubectl apply -f weave.yaml
+kubectl --kubeconfig=/home/vagrant/.kube/config apply -f weave.yaml
 
 echo "SUCCESS: installed cni plugin!"
