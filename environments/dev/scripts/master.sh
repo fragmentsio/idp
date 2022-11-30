@@ -66,11 +66,13 @@ chmod +x /vagrant/.vagrant/.kube/config.d/join.sh
 
 echo "SUCCESS: extracted the join command!"
 
-# extract kubeconfig file
+# extract kube config
 
 mkdir -p /home/vagrant/.kube
 sudo cp -f /etc/kubernetes/admin.conf /home/vagrant/.kube/config
 sudo chown 1000:1000 /home/vagrant/.kube/config
+
+export KUBECONFIG=/home/vagrant/.kube/config
 
 sudo cp -f /etc/kubernetes/admin.conf /vagrant/.vagrant/.kube/config
 
@@ -82,7 +84,7 @@ sudo apt-get install -y kubectl="$KUBERNETES_VERSION"-00
 
 sudo apt-mark hold kubectl
 
-if [[ $(kubectl --kubeconfig=/home/vagrant/.kube/config version) == *"$KUBERNETES_VERSION"* ]]; then
+if [[ $(kubectl version) == *"$KUBERNETES_VERSION"* ]]; then
   echo "SUCCESS: kubectl is installed!"
 else
   echo "FAILED: kubectl is not installed correctly..."
@@ -92,7 +94,7 @@ fi
 sudo apt-get install -y bash-completion
 echo "
 source /usr/share/bash-completion/bash_completion
-alias k='kubectl --kubeconfig=/home/vagrant/.kube/config'
+alias k='kubectl'
 source <(kubectl completion bash)
 complete -o default -F __start_kubectl k
 " >> /home/vagrant/.bashrc
@@ -103,6 +105,6 @@ source /home/vagrant/.bashrc
 wget -q -O weave.yaml https://github.com/weaveworks/weave/releases/download/v2.8.1/weave-daemonset-k8s.yaml
 yq eval '(.items[] | select(.kind == "DaemonSet" and .metadata.name == "weave-net").spec.template.spec.containers[] | select(.name == "weave").env) += { "name": "IPALLOC_RANGE", "value": "'$POD_NETWORK_CIDR'" }' -i weave.yaml
 
-kubectl --kubeconfig=/home/vagrant/.kube/config apply -f weave.yaml
+kubectl apply -f weave.yaml
 
 echo "SUCCESS: installed cni plugin!"
