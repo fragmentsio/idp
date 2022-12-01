@@ -1,6 +1,7 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+
 PROJECT_NAME                  = "idp"
 ENVIRONMENT_NAME              = "dev"
 
@@ -17,22 +18,23 @@ COMMON_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "common.sh"
 MASTER_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "master.sh"
 WORKER_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "worker.sh"
 
+NODES_CONFIG                  = [
+  { :name => MASTER_NODE_BASENAME + "-01", :ip => NODES_CIDR + "#{NODES_IP_START + 1}", :cpus => 2, :memory => 2048, :provisioning_script => MASTER_PROVISIONING_SCRIPT },
+  { :name => WORKER_NODE_BASENAME + "-01", :ip => NODES_CIDR + "#{NODES_IP_START + 2}", :cpus => 1, :memory => 1024, :provisioning_script => WORKER_PROVISIONING_SCRIPT },
+  { :name => WORKER_NODE_BASENAME + "-02", :ip => NODES_CIDR + "#{NODES_IP_START + 3}", :cpus => 1, :memory => 1024, :provisioning_script => WORKER_PROVISIONING_SCRIPT }
+]
+
+HOSTS                         = NODES_CONFIG.map{|node_config| node_config[:ip] + ":" + node_config[:name]}.join(",")
+
+MASTER_IP                     = NODES_CONFIG.find{|node_config| node_config[:name].start_with? MASTER_NODE_BASENAME}[:ip]
+
+
 Vagrant.configure("2") do |config|
-
-  nodes_config = [
-    { :name => MASTER_NODE_BASENAME + "-01", :ip => NODES_CIDR + "#{NODES_IP_START + 1}", :cpus => 2, :memory => 2048, :provisioning_script => MASTER_PROVISIONING_SCRIPT },
-    { :name => WORKER_NODE_BASENAME + "-01", :ip => NODES_CIDR + "#{NODES_IP_START + 2}", :cpus => 1, :memory => 1024, :provisioning_script => WORKER_PROVISIONING_SCRIPT },
-    { :name => WORKER_NODE_BASENAME + "-02", :ip => NODES_CIDR + "#{NODES_IP_START + 3}", :cpus => 1, :memory => 1024, :provisioning_script => WORKER_PROVISIONING_SCRIPT }
-  ]
-
-  hosts = nodes_config.map{|node_config| node_config[:ip] + ":" + node_config[:name]}.join(",")
-
-  master_ip = nodes_config.find{|node_config| node_config[:name].start_with? MASTER_NODE_BASENAME}[:ip]
 
   config.vm.box = "bento/ubuntu-22.04"
   config.vm.box_check_update = true
 
-  nodes_config.each do |node_config|
+  NODES_CONFIG.each do |node_config|
 
     config.vm.define node_config[:name] do |node|
 
@@ -45,7 +47,7 @@ Vagrant.configure("2") do |config|
       node.vm.hostname = node_config[:name]
       node.vm.network "private_network", ip: node_config[:ip]
 
-      node.vm.provision "shell", path: COMMON_PROVISIONING_SCRIPT, :args => "--hosts=#{hosts}"
+      node.vm.provision "shell", path: COMMON_PROVISIONING_SCRIPT, :args => "--hosts=#{HOSTS}"
 
       node.vm.provision :shell do |shell|
         shell.privileged = true
@@ -53,7 +55,7 @@ Vagrant.configure("2") do |config|
         shell.reboot = true
       end
 
-      node.vm.provision "shell", path: node_config[:provisioning_script], :args => "--master-ip=#{master_ip} --pod-network-cidr=#{POD_NETWORK_CIDR}"
+      node.vm.provision "shell", path: node_config[:provisioning_script], :args => "--master-ip=#{MASTER_IP} --pod-network-cidr=#{POD_NETWORK_CIDR}"
 
     end
 

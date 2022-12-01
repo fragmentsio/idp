@@ -108,3 +108,58 @@ yq eval '(.items[] | select(.kind == "DaemonSet" and .metadata.name == "weave-ne
 kubectl apply -f weave.yaml
 
 echo "SUCCESS: installed cni plugin!"
+
+# install metrics server
+
+wget -q -O metrics-server.yaml https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.2/components.yaml
+yq eval '(select(.kind == "Deployment" and .metadata.name == "metrics-server").spec.template.spec.containers[] | select(.name == "metrics-server").args) += "--kubelet-insecure-tls"' -i metrics-server.yaml
+
+kubectl apply -f metrics-server.yaml
+
+echo "SUCCESS: installed metrics server!"
+
+# install kubernetes dashboard 
+
+wget -q -O kubernetes-dashboard.yaml https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/alternative.yaml
+
+echo "
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: kubernetes-dashboard-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: kubernetes-dashboard
+  namespace: kubernetes-dashboard
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kubernetes-dashboard-external
+  namespace: kubernetes-dashboard
+  labels:
+    k8s-app: kubernetes-dashboard
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 9090
+    nodePort: 30000
+  selector:
+    k8s-app: kubernetes-dashboard
+" >> kubernetes-dashboard.yaml
+
+yq 'del(select(.kind == "Deployment" and .metadata.name == "kubernetes-dashboard").spec.template.spec.containers[] | select(.name == "kubernetes-dashboard").args[] | select(. == "--enable-insecure-login"))' -i kubernetes-dashboard.yaml
+yq '(select(.kind == "Deployment" and .metadata.name == "kubernetes-dashboard").spec.template.spec.containers[] | select(.name == "kubernetes-dashboard").args) += "--enable-skip-login"' -i kubernetes-dashboard.yaml
+
+kubectl apply -f kubernetes-dashboard.yaml
+
+kubernetes_dashboard_port=$(kubectl get svc -n kubernetes-dashboard kubernetes-dashboard-external -o=jsonpath='{.spec.ports[0].nodePort}')
+kubernetes_dashboard_url=http://$MASTER_IP:$kubernetes_dashboard_port/
+
+echo "SUCCESS: kubernetes dashboard is installed and available at $kubernetes_dashboard_url"
