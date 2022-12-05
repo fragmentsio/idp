@@ -163,3 +163,23 @@ kubernetes_dashboard_port=$(kubectl get svc -n kubernetes-dashboard kubernetes-d
 kubernetes_dashboard_url=http://$MASTER_IP:$kubernetes_dashboard_port/
 
 echo "SUCCESS: kubernetes dashboard is installed and available at $kubernetes_dashboard_url"
+
+# install dynamic local persistent volume provisioner
+
+shared_volumes_folder='/vagrant/.vagrant/kubernetes/volumes'
+
+mkdir -p $shared_volumes_folder
+
+echo '{
+  "nodePathMap": [],
+  "sharedFileSystemPath": "'$shared_volumes_folder'"
+}' > local-path-storage-config.json
+
+wget -q -O local-path-storage.yaml https://raw.githubusercontent.com/rancher/local-path-provisioner/v0.0.23/deploy/local-path-storage.yaml
+
+yq 'select(.kind == "ConfigMap" and .metadata.name == "local-path-config").data."config.json" = load_str("local-path-storage-config.json")' -i local-path-storage.yaml
+yq 'select(.kind == "StorageClass" and .metadata.name == "local-path").metadata.annotations."storageclass.kubernetes.io/is-default-class" = "true"' -i local-path-storage.yaml
+
+kubectl apply -f local-path-storage.yaml
+
+echo "SUCCESS: installed dynamic local persistent volume provisioner!"
