@@ -1,0 +1,10 @@
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: ClusterConfiguration
+apiServer:
+  extraArgs:
+    service-node-port-range: 30000-40000
+
+---
+
+apiVersion: kubeadm.k8s.io/v1beta3
+kind: InitConfiguration

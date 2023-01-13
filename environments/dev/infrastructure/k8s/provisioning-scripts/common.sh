@@ -19,15 +19,15 @@ while [ $# -gt 0 ]; do
   shift
 done
 
-# TODO: create a non-root passwordless user other than vagrant and configure its ssh access
-
-# setup hosts file
-
 if [ -z $HOSTS ]; then
   echo "ERROR: missing required arguments!"
   echo "ERROR: set the argument --hosts=ip1:hostname1[,ipN:hostnameN]"
   exit 1
 fi
+
+# TODO: create a non-root passwordless user other than vagrant and configure its ssh access
+
+# setup hosts file
 
 hosts_file_update="\n# cluster nodes"
 
@@ -86,7 +86,7 @@ echo "SUCCESS: cgroup v2 disabled!"
 
 sudo apt-get update
 
-sudo apt-get install -y ca-certificates curl gnupg lsb-release apt-transport-https
+sudo apt-get install -y ca-certificates curl gnupg lsb-release apt-transport-https nfs-common
 
 wget https://github.com/mikefarah/yq/releases/download/v4.30.4/yq_linux_amd64.tar.gz -q -O - | tar xz && sudo mv yq_linux_amd64 /usr/bin/yq
 
@@ -100,7 +100,9 @@ echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.
 
 sudo apt-get update
 
-sudo apt-get install -y containerd.io
+sudo apt-get install --allow-downgrades -y containerd.io=1.6.12-1
+
+sudo apt-mark hold containerd.io
 
 sudo sed -i '/disabled_plugins/s/\(\,"cri"\|"cri"\,\|"cri"\)//g' /etc/containerd/config.toml
 
@@ -123,6 +125,8 @@ else
   exit 1
 fi
 
+# TODO: install crictl
+
 # install kubeadm and kubelet
 
 sudo curl -fsSLo /etc/apt/keyrings/kubernetes.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
@@ -131,7 +135,7 @@ echo "deb [signed-by=/etc/apt/keyrings/kubernetes.gpg] https://apt.kubernetes.io
 
 sudo apt-get update
 
-sudo apt-get install -y kubeadm="$KUBERNETES_VERSION"-00 kubelet="$KUBERNETES_VERSION"-00
+sudo apt-get install --allow-downgrades -y kubeadm="$KUBERNETES_VERSION"-00 kubelet="$KUBERNETES_VERSION"-00
 
 sudo apt-mark hold kubeadm kubelet
 

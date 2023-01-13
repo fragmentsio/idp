@@ -4,4 +4,4 @@
 
 # join the cluster
 
-sudo /vagrant/.vagrant/.kube/config.d/join.sh
+sudo /vagrant/.kube/join.sh

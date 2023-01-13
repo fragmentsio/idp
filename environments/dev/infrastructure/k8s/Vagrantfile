@@ -11,9 +11,11 @@ WORKER_NODE_BASENAME          = "worker"
 NODES_CIDR                    = "192.168.56."
 NODES_IP_START                = 28
 
+HOST_IP                       = "10.0.2.2"
+
 POD_NETWORK_CIDR              = "172.16.0.0/12"
 
-PROVISIONING_SCRIPTS_BASEPATH = "./scripts/"
+PROVISIONING_SCRIPTS_BASEPATH = "./provisioning-scripts/"
 COMMON_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "common.sh"
 MASTER_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "master.sh"
 WORKER_PROVISIONING_SCRIPT    = PROVISIONING_SCRIPTS_BASEPATH + "worker.sh"
@@ -46,6 +48,7 @@ Vagrant.configure("2") do |config|
 
       node.vm.hostname = node_config[:name]
       node.vm.network "private_network", ip: node_config[:ip]
+      node.vm.synced_folder "../../resources/", "/vagrant/.resources"
 
       node.vm.provision "shell", path: COMMON_PROVISIONING_SCRIPT, :args => "--hosts=#{HOSTS}"
 
@@ -55,7 +58,7 @@ Vagrant.configure("2") do |config|
         shell.reboot = true
       end
 
-      node.vm.provision "shell", path: node_config[:provisioning_script], :args => "--master-ip=#{MASTER_IP} --pod-network-cidr=#{POD_NETWORK_CIDR}"
+      node.vm.provision "shell", path: node_config[:provisioning_script], :args => "--host-ip=#{HOST_IP} --master-ip=#{MASTER_IP} --pod-network-cidr=#{POD_NETWORK_CIDR}"
 
     end
 
